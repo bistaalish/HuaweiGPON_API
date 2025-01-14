@@ -27,3 +27,6 @@ Thumbs.db
 dist/
 build/
 coverage/
+
+# CSV
+csv/
