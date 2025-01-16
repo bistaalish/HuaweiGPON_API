@@ -17,7 +17,7 @@ async function addPON(inputData, client, basePrompt) {
         await waitForPrompt(client, interfacePrompt);
 
         console.log('[INFO] Sending "ont confirm" command...');
-        const ontConfirmCommand = `ont confirm ${p} sn-auth ${ontSN} omci ont-lineprofile-id ${profile} ont-srvprofile-id ${profile} desc ${desc}`;
+        const ontConfirmCommand = `ont add ${p} sn-auth ${ontSN} omci ont-lineprofile-id ${profile} ont-srvprofile-id ${profile} desc ${desc}`;
         client.write(`${ontConfirmCommand}\r\n`);
         const response = await waitForResponse(client, interfacePrompt);
 

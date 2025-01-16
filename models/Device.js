@@ -1,12 +1,12 @@
 const mongoose = require('mongoose');
 const { v4: uuidv4 } = require('uuid'); // Import UUID package
 
-// Define the Device schema
+// Define the Device schema with soft delete
 const deviceSchema = new mongoose.Schema(
     {
         Device_ID: {
             type: String,
-            default: uuidv4, // Automatically generates a unique ID
+            default: uuidv4().slice(0, 4), // Automatically generates a unique ID
             unique: true,    // Ensures the Device_ID is unique
             required: true,  // Makes it required
             trim: true,
@@ -40,6 +40,14 @@ const deviceSchema = new mongoose.Schema(
             type: mongoose.Schema.Types.String, // Matches the type of reseller_ID in Reseller schema
             ref: 'Reseller', // Refers to the Reseller schema
             required: true, // Makes it required
+        },
+        deleted: {
+            type: Boolean,
+            default: false, // Marks whether the device is deleted or not
+        },
+        deletedAt: {
+            type: Date,
+            default: null, // Stores the timestamp when the device was deleted
         },
     },
     {
