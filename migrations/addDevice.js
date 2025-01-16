@@ -47,7 +47,7 @@ const addDevices = async () => {
             const { Device_name, ip_address, username, password, reseller_ID } = device;
             // Use deviceService to create the device
             try {
-                const createdDevice = await deviceService.createDevice(Device_name, ip_address, username, password, reseller_ID);
+                const createdDevice = await deviceService.createDevice({Device_name, ip_address, username, password, reseller_ID});
                 console.log(`Device created: ${createdDevice.Device_name}`);
             } catch (error) {
                 console.error('Error creating device:', error.message);

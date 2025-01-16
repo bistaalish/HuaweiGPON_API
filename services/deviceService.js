@@ -2,12 +2,8 @@
 const Device = require('../models/Device'); // Import Device model
 
 // Create Device
-const createDevice = async ( Device_name, ip_address, username, password, reseller_ID) => {
+const createDevice = async (deviceData) => {
     try {
-        deviceData = {
-            Device_name, ip_address, username, password, reseller_ID
-        }
-        console.log(deviceData)
         const device = new Device(deviceData); // Create a new device instance
         await device.save(); // Save the device to the database
         return device;
