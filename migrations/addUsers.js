@@ -1,76 +1,79 @@
-require('dotenv').config();
-const mongoose = require('mongoose');
 const fs = require('fs');
 const path = require('path');
-const bcrypt = require('bcrypt'); // Import bcrypt
-const csvParser = require('csv-parser');
-const User = require('../models/User'); // Adjust the path based on your project structure
+const csv = require('csv-parser');
+const mongoose = require('mongoose');
+const userService = require('../services/userService'); // Import the userService
+require('dotenv').config();
 
-// MongoDB connection string (replace with your actual connection string)
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/your_database_name';
+// MongoDB connection URI
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/your-database-name'; // Replace with your actual MongoDB URI
 
-// Connect to MongoDB
-mongoose
-  .connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(() => console.log('Connected to MongoDB'))
-  .catch((err) => {
-    console.error('Error connecting to MongoDB:', err.message);
-    process.exit(1);
-  });
-
-// Function to hash the password
-const hashPassword = async (password) => {
-  const salt = await bcrypt.genSalt(10);
-  return bcrypt.hash(password, salt);
-};
-
-// Function to import users from CSV
-const addUsers = async () => {
-  const csvFilePath = path.join(__dirname, '../csv/users.csv'); // Path to the CSV file
-  const users = [];
-
-  console.log('CSV file path:', csvFilePath); // Debugging log
-
+// Function to connect to MongoDB
+const connectDB = async () => {
   try {
-    // Read and parse the CSV file
-    await new Promise((resolve, reject) => {
-      fs.createReadStream(csvFilePath)
-        .pipe(csvParser())
-        .on('data', async (row) => {
-          console.log('Parsed row:', row); // Debugging log
-          try {
-            // Hash the password
-            const hashedPassword = await hashPassword(row.password);
-
-            // Create user object
-            users.push({
-              username: row.username,
-              password: hashedPassword,
-              reseller_ID: row.reseller_ID,
-            });
-          } catch (err) {
-            console.error('Error hashing password for user:', row.username, err.message);
-          }
-        })
-        .on('end', resolve) // Resolves the promise once the file is fully read
-        .on('error', reject);
+    await mongoose.connect(MONGO_URI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
     });
-
-    // Insert users into the database after CSV parsing is complete
-    console.log('Users array before insertion:', users); // Debugging log
-
-    if (users.length > 0) {
-      await User.insertMany(users);
-      console.log(`${users.length} users added successfully.`);
-    } else {
-      console.log('No users to add.');
-    }
+    console.log('MongoDB connected...');
   } catch (error) {
-    console.error('Error importing users:', error.message);
-  } finally {
-    mongoose.connection.close();
+    console.error('MongoDB connection failed:', error);
+    process.exit(1); // Exit on failure
   }
 };
 
-// Run the addUsers function
-addUsers();
+// Function to process the CSV file and insert users
+const addUsersFromCSV = async (filePath) => {
+  const users = [];
+
+  return new Promise((resolve, reject) => {
+    // Create a stream to read the CSV file
+    fs.createReadStream(filePath)
+      .pipe(csv())
+      .on('data', async (row) => {
+        const { username, password, reseller_ID } = row;
+
+        // Validate username, password, and reseller_ID
+        if (!username || !password || !reseller_ID) {
+          console.log(`Skipping invalid row: ${JSON.stringify(row)}`);
+          return; // Skip invalid rows
+        }
+
+        try {
+          // Call userService to create the user
+          const newUser = await userService.createUser(username, password, reseller_ID);
+          console.log(`User created: ${newUser.username}`);
+          // users.push(newUser);  // Store successful result
+        } catch (error) {
+          console.error(`Failed to create user: ${username} - ${error.message}`);
+        }
+      })
+      .on('end', () => {
+        console.log('CSV file successfully processed');
+        console.log(`Total users added: ${users.length}`);
+        resolve(users); // Resolve with the list of successfully added users
+      })
+      .on('error', (error) => {
+        reject(error); // Reject the promise on error
+      });
+  });
+};
+
+// Main function to run the migration
+const runMigration = async () => {
+  await connectDB();  // Connect to MongoDB
+  const filePath = path.join(__dirname, '../CSV/users.csv');  // Path to the CSV file
+  
+  try {
+    const users = await addUsersFromCSV(filePath);  // Process the CSV and insert users
+    console.log(`Migration completed. Total users processed: ${users.length}`);
+  } catch (error) {
+    console.error('Error during migration:', error);
+  } finally {
+    mongoose.connection.close();  // Close the connection after operation
+    console.log('MongoDB connection closed.');
+  }
+};
+
+// Run the migration
+runMigration();

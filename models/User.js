@@ -1,5 +1,4 @@
 const mongoose = require('mongoose');
-const bcrypt = require('bcrypt');
 const { v4: uuidv4 } = require('uuid');
 
 const userSchema = new mongoose.Schema(
@@ -34,26 +33,11 @@ const userSchema = new mongoose.Schema(
     }
 );
 
-// Middleware to hash password before saving
-userSchema.pre('save', async function (next) {
-    if (!this.isModified('password')) return next();
-
-    // Prevent double hashing
-    if (this.password.startsWith('$2')) return next();
-
-    try {
-        const salt = await bcrypt.genSalt(10);
-        this.password = await bcrypt.hash(this.password, salt);
-        next();
-    } catch (err) {
-        next(err);
-    }
-});
-
 // Static method to validate user password
-userSchema.statics.validatePassword = async function (plainPassword, hashedPassword) {
-    return await bcrypt.compare(plainPassword, hashedPassword);
-};
+// userSchema.statics.validatePassword = async function (plainPassword, hashedPassword) {
+//     const bcrypt = require('bcrypt');
+//     return await bcrypt.compare(plainPassword, hashedPassword);  // Compare plain password with hashed password
+// };
 
 // Export the User model
 module.exports = mongoose.model('User', userSchema);

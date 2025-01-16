@@ -55,5 +55,19 @@ const deviceSchema = new mongoose.Schema(
     }
 );
 
+// Method to soft delete the device
+deviceSchema.methods.softDelete = function () {
+    this.deleted = true;  // Marks the device as deleted
+    this.deletedAt = new Date();  // Sets the deletion timestamp
+    return this.save();  // Saves the updated device document
+};
+
+// Method to restore a soft-deleted device
+deviceSchema.methods.restore = function () {
+    this.deleted = false;  // Restores the device (marks as not deleted)
+    this.deletedAt = null;  // Clears the deletion timestamp
+    return this.save();  // Saves the restored device document
+};
+
 // Export the Device model
 module.exports = mongoose.model('Device', deviceSchema);
