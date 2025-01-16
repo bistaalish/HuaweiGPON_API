@@ -17,24 +17,12 @@ const serviceSchema = new mongoose.Schema(
             trim: true,
         },
         VLAN: {
-            type: Number,
+            type: String,
             required: true,
-            validate: {
-                validator: function (v) {
-                    return v > 0 && v < 4096; // Validates VLAN ID range (1-4095)
-                },
-                message: props => `${props.value} is not a valid VLAN ID!`,
-            },
         },
         GEM_port: {
-            type: Number,
+            type: String,
             required: true,
-            validate: {
-                validator: function (v) {
-                    return v > 0 && v <= 65535; // Validates GEM port range
-                },
-                message: props => `${props.value} is not a valid GEM port number!`,
-            },
         },
         Profile: {
             type: String,

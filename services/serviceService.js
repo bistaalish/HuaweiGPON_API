@@ -1,70 +1,91 @@
 const Service = require('../models/Service'); // Import the Service model
 
-// Service function to create a new service
-const createService = async (Name, VLAN, GEM_port, Profile, Device_id) => {
+// Create a new service
+const createService = async ({ Name, VLAN, GEM_port, Profile, Device_id }) => {
     try {
+        console.log({ Name, VLAN, GEM_port, Profile, Device_id })
         const service = new Service({ Name, VLAN, GEM_port, Profile, Device_id });
-        await service.save(); // Save to the database
+        await service.save(); // Save the new service to the database
         return service; // Return the saved service
     } catch (error) {
-        throw new Error('Error creating service: ' + error.message);
+        throw new Error(`Error creating service: ${error.message}`);
     }
 };
 
-// Service function to get all services (excluding soft-deleted)
+// Get all services (excluding soft-deleted)
 const getAllServices = async () => {
     try {
-        return await Service.find(); // Fetch all services, excluding soft-deleted ones
+        return await Service.find(); // Fetch all services that are not soft-deleted
     } catch (error) {
-        throw new Error('Error fetching services: ' + error.message);
+        throw new Error(`Error fetching services: ${error.message}`);
     }
 };
 
-// Service function to get a service by ID
+// Get a service by ID
 const getServiceById = async (id) => {
     try {
         const service = await Service.findById(id); // Find service by ID
-        if (!service) throw new Error('Service not found');
+        if (!service || service.isDeleted) {
+            throw new Error('Service not found or has been deleted');
+        }
         return service; // Return the found service
     } catch (error) {
-        throw new Error('Error fetching service: ' + error.message);
+        throw new Error(`Error fetching service: ${error.message}`);
     }
 };
 
-// Service function to update a service
-const updateService = async (id, Name, VLAN, GEM_port, Profile, Device_id) => {
+// Update a service
+const updateService = async (id, { Name, VLAN, GEM_port, Profile, Device_id }) => {
     try {
         const updatedService = await Service.findByIdAndUpdate(
             id,
             { Name, VLAN, GEM_port, Profile, Device_id },
-            { new: true } // Return the updated document
+            { new: true, runValidators: true } // Return the updated document and run schema validators
         );
-        if (!updatedService) throw new Error('Service not found');
-        return updatedService;
+        if (!updatedService) {
+            throw new Error('Service not found or has been deleted');
+        }
+        return updatedService; // Return the updated service
     } catch (error) {
-        throw new Error('Error updating service: ' + error.message);
+        throw new Error(`Error updating service: ${error.message}`);
     }
 };
 
-// Service function to soft delete a service (mark as deleted)
+// Soft delete a service
 const softDeleteService = async (id) => {
     try {
         const service = await Service.findById(id); // Find service by ID
-        if (!service) throw new Error('Service not found');
-
-        // Call the softDelete method to mark the service as deleted
-        return await service.softDelete();
+        if (!service || service.isDeleted) {
+            throw new Error('Service not found or has been deleted');
+        }
+        await service.softDelete(); // Call the custom soft delete method
+        return service; // Return the soft-deleted service
     } catch (error) {
-        throw new Error('Error deleting service: ' + error.message);
+        throw new Error(`Error deleting service: ${error.message}`);
     }
 };
 
-// Service function to get all services including soft-deleted
+// Restore a soft-deleted service
+const restoreService = async (id) => {
+    try {
+        const service = await Service.findById(id); // Find service by ID
+        if (!service || !service.isDeleted) {
+            throw new Error('Service not found or is not deleted');
+        }
+        service.deletedAt = null; // Remove the deletion timestamp
+        await service.save(); // Save the restored service
+        return service; // Return the restored service
+    } catch (error) {
+        throw new Error(`Error restoring service: ${error.message}`);
+    }
+};
+
+// Get all services, including soft-deleted
 const getAllServicesIncludingDeleted = async () => {
     try {
-        return await Service.find({}); // Fetch all services including soft-deleted ones
+        return await Service.find().exec(); // Fetch all services, including soft-deleted ones
     } catch (error) {
-        throw new Error('Error fetching services: ' + error.message);
+        throw new Error(`Error fetching all services: ${error.message}`);
     }
 };
 
@@ -74,5 +95,6 @@ module.exports = {
     getServiceById,
     updateService,
     softDeleteService,
-    getAllServicesIncludingDeleted
+    restoreService,
+    getAllServicesIncludingDeleted,
 };

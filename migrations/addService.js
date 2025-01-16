@@ -1,81 +1,67 @@
+require('dotenv').config();
+const mongoose = require('mongoose');
 const fs = require('fs');
 const path = require('path');
-const csv = require('csv-parser');
-const mongoose = require('mongoose');
-const Service = require('../models/Service');  // Import the Service model
-require('dotenv').config();
+const csvParser = require('csv-parser');
+const serviceService = require('../services/serviceService'); // Import the serviceService
 
-// MongoDB connection URI
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/your-database-name'; // Replace with your actual MongoDB URI
+// MongoDB connection string
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/your_database_name';
+console.log(MONGO_URI);
 
-// Function to connect to MongoDB
-const connectDB = async () => {
-  try {
-    await mongoose.connect(MONGO_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
+// Connect to MongoDB
+mongoose
+    .connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+    .then(() => console.log('Connected to MongoDB'))
+    .catch(err => {
+        console.error('Error connecting to MongoDB:', err.message);
+        process.exit(1);
     });
-    console.log('MongoDB connected...');
-  } catch (error) {
-    console.error('MongoDB connection failed:', error);
-    process.exit(1); // Exit on failure
-  }
-};
 
-// Function to process the CSV file and insert services
-const addServicesFromCSV = async (filePath) => {
-  try {
-    const services = [];
+// Function to add services from CSV
+const addServices = async () => {
+    const csvFilePath = path.join(__dirname, '../csv/services.csv'); // Path to the CSV file
 
-    // Create a stream to read the CSV file
-    fs.createReadStream(filePath)
-      .pipe(csv())
-      .on('data', (row) => {
-        // Push each service object into the services array
-        const { Name, VLAN, GEM_port, Profile, Device_id } = row;
+    try {
+        const services = [];
 
-        // Validate VLAN and GEM_port
-        const vlanNum = Number(VLAN);
-        const gemPortNum = Number(GEM_port);
-
-        if (isNaN(vlanNum) || isNaN(gemPortNum)) {
-          console.log(`Skipping invalid row: ${JSON.stringify(row)}`);
-          return; // Skip invalid rows
-        }
-
-        services.push({
-          Name,
-          VLAN: vlanNum,
-          GEM_port: gemPortNum,
-          Profile,
-          Device_id,
+        // Read and parse the CSV file
+        await new Promise((resolve, reject) => {
+            fs.createReadStream(csvFilePath)
+                .pipe(csvParser())
+                .on('data', row => {
+                    services.push({
+                        Name: row.Name,
+                        VLAN: row.VLAN,
+                        GEM_port: row.GEM_port,
+                        Profile: row.Profile,
+                        Device_id: row.Device_id,
+                    });
+                })
+                .on('end', resolve)
+                .on('error', reject);
         });
-      })
-      .on('end', async () => {
-        console.log('CSV file successfully processed');
 
-        // Insert services into the database
-        try {
-          await Service.insertMany(services);
-          console.log('Services added successfully');
-          mongoose.connection.close(); // Close the connection after operation
-        } catch (error) {
-          console.error('Error inserting services into the database:', error);
-          mongoose.connection.close();
+        // Insert the services using serviceService
+        for (const service of services) {
+            const { Name, VLAN, GEM_port, Profile, Device_id } = service;
+
+            // Use serviceService to create the service
+            try {
+                const createdService = await serviceService.createService({Name, VLAN, GEM_port, Profile, Device_id});
+                console.log(`Service created: ${createdService.Name}`);
+            } catch (error) {
+                console.error('Error creating service:', error.message);
+            }
         }
-      });
-  } catch (error) {
-    console.error('Error processing CSV file:', error);
-    mongoose.connection.close();
-  }
+
+    } catch (error) {
+        console.error('Error adding services:', error.message);
+    } finally {
+        mongoose.connection.close();
+        console.log('MongoDB connection closed.');
+    }
 };
 
-// Main function to run the migration
-const runMigration = async () => {
-  await connectDB();  // Connect to MongoDB
-  const filePath = path.join(__dirname, '../CSV/services.csv');  // Path to the CSV file
-  await addServicesFromCSV(filePath);  // Process the CSV and insert services
-};
-
-// Run the migration
-runMigration();
+// Run the function to add services
+addServices();
