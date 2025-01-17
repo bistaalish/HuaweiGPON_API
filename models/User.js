@@ -5,18 +5,18 @@ const userSchema = new mongoose.Schema(
     {
         client_ID: {
             type: String,
-            default: () => uuidv4().slice(0, 4), // Generates a unique 4-character ID
+            default: () => uuidv4().slice(0, 4),
             unique: true,
             required: true,
             trim: true,
         },
         username: {
             type: String,
-            required: true,
-            unique: true,
             trim: true,
             minlength: [3, 'Username must be at least 3 characters long'],
             maxlength: [50, 'Username must not exceed 50 characters'],
+            required: true,
+            unique: true, // Ensures uniqueness
         },
         password: {
             type: String,
@@ -27,17 +27,45 @@ const userSchema = new mongoose.Schema(
             ref: 'Reseller',
             required: true,
         },
+        deleted: {
+            type: Boolean,
+            default: false, // By default, users are active
+        },
+        deletedAt: {
+            type: Date, // Records the timestamp of deletion, if applicable
+            default: null,
+        },
     },
     {
         timestamps: true, // Automatically adds createdAt and updatedAt fields
     }
 );
 
-// Static method to validate user password
-// userSchema.statics.validatePassword = async function (plainPassword, hashedPassword) {
-//     const bcrypt = require('bcrypt');
-//     return await bcrypt.compare(plainPassword, hashedPassword);  // Compare plain password with hashed password
-// };
+// Add a unique index for the `username` field
+userSchema.index({ username: 1 }, { unique: true });
 
-// Export the User model
+// Instance method to soft delete a user
+userSchema.methods.softDelete = async function () {
+    this.deleted = true;
+    this.deletedAt = new Date();
+    await this.save();
+};
+
+// Static method to find only active users
+userSchema.statics.findActive = function (query = {}) {
+    return this.find({ ...query, deleted: false });
+};
+
+// Static method to restore a soft-deleted user
+userSchema.statics.restore = async function (userId) {
+    const user = await this.findById(userId);
+    if (user && user.deleted) {
+        user.deleted = false;
+        user.deletedAt = null;
+        await user.save();
+        return user;
+    }
+    throw new Error('User not found or not deleted');
+};
+
 module.exports = mongoose.model('User', userSchema);

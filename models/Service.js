@@ -6,15 +6,16 @@ const serviceSchema = new mongoose.Schema(
     {
         Service_id: {
             type: String,
-            default: uuidv4().slice(0, 4), // Automatically generates a unique ID
-            unique: true,    // Ensures the Service_id is unique
-            required: true,  // Makes it required
+            default: () => uuidv4().slice(0, 4), // Automatically generates a unique ID
+            unique: true, // Ensures the Service_id is unique
+            required: true, // Makes it required
             trim: true,
         },
         Name: {
             type: String,
             required: true,
             trim: true,
+            unique: true, // Enforces uniqueness at the database level
         },
         VLAN: {
             type: String,
@@ -34,10 +35,10 @@ const serviceSchema = new mongoose.Schema(
             ref: 'Device', // Refers to the Device schema
             required: true, // Makes it required
         },
-        deletedAt: {  // Field for soft delete timestamp
+        deletedAt: {
             type: Date,
-            default: null,  // Initially set to null
-        }
+            default: null, // Initially set to null
+        },
     },
     {
         timestamps: true, // Automatically adds createdAt and updatedAt fields
@@ -50,21 +51,32 @@ serviceSchema.virtual('isDeleted').get(function () {
 });
 
 // Custom query middleware to exclude soft-deleted documents from queries
-serviceSchema.pre('find', function (next) {
-    this.where({ deletedAt: null }); // Exclude soft-deleted services
-    next();
-});
-
-serviceSchema.pre('findOne', function (next) {
+serviceSchema.pre(/^find/, function (next) {
     this.where({ deletedAt: null }); // Exclude soft-deleted services
     next();
 });
 
 // Method to "soft delete" a service by setting deletedAt field
 serviceSchema.methods.softDelete = function () {
-    this.deletedAt = new Date();  // Set the current date and time for deletion
-    return this.save();  // Save the changes
+    this.deletedAt = new Date(); // Set the current date and time for deletion
+    return this.save(); // Save the changes
 };
+
+// Pre-save middleware to ensure Name uniqueness across active documents
+serviceSchema.pre('save', async function (next) {
+    if (!this.isModified('Name')) return next(); // Skip if Name hasn't changed
+
+    const existingService = await mongoose.model('Service').findOne({
+        Name: this.Name,
+        deletedAt: null, // Ensure only active services are checked
+    });
+
+    if (existingService && existingService._id.toString() !== this._id.toString()) {
+        return next(new Error(`Service Name "${this.Name}" is already in use.`));
+    }
+
+    next();
+});
 
 // Export the Service model
 module.exports = mongoose.model('Service', serviceSchema);

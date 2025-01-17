@@ -6,19 +6,21 @@ const deviceSchema = new mongoose.Schema(
     {
         Device_ID: {
             type: String,
-            default: uuidv4().slice(0, 4), // Automatically generates a unique ID
-            unique: true,    // Ensures the Device_ID is unique
-            required: true,  // Makes it required
+            default: () => uuidv4().slice(0, 4), // Generates a unique ID
+            unique: true, // Ensures the Device_ID is unique
+            required: true, // Makes it required
             trim: true,
         },
         Device_name: {
             type: String,
             required: true,
             trim: true,
+            unique: true,
         },
         ip_address: {
             type: String,
             required: true,
+            unique: true, // Ensures the IP address is unique in the collection
             validate: {
                 validator: function (v) {
                     return /^(\d{1,3}\.){3}\d{1,3}$/.test(v); // Validates IPv4 format
@@ -55,18 +57,28 @@ const deviceSchema = new mongoose.Schema(
     }
 );
 
+// Pre-save middleware to check IP uniqueness
+deviceSchema.pre('save', async function (next) {
+    if (!this.isModified('ip_address')) return next(); // Skip if ip_address hasn't changed
+    const existingDevice = await mongoose.model('Device').findOne({ ip_address: this.ip_address });
+    if (existingDevice && existingDevice._id.toString() !== this._id.toString()) {
+        return next(new Error('IP address already in use.'));
+    }
+    next();
+});
+
 // Method to soft delete the device
 deviceSchema.methods.softDelete = function () {
-    this.deleted = true;  // Marks the device as deleted
-    this.deletedAt = new Date();  // Sets the deletion timestamp
-    return this.save();  // Saves the updated device document
+    this.deleted = true; // Marks the device as deleted
+    this.deletedAt = new Date(); // Sets the deletion timestamp
+    return this.save(); // Saves the updated device document
 };
 
 // Method to restore a soft-deleted device
 deviceSchema.methods.restore = function () {
-    this.deleted = false;  // Restores the device (marks as not deleted)
-    this.deletedAt = null;  // Clears the deletion timestamp
-    return this.save();  // Saves the restored device document
+    this.deleted = false; // Restores the device (marks as not deleted)
+    this.deletedAt = null; // Clears the deletion timestamp
+    return this.save(); // Saves the restored device document
 };
 
 // Export the Device model
