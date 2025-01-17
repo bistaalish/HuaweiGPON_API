@@ -1,4 +1,5 @@
 const User = require('../models/User'); // Adjust the path based on your project structure
+const {getResellerById} = require("./resellerService");
 const bcrypt = require('bcrypt');
 
 class UserService {
@@ -9,12 +10,22 @@ class UserService {
      */
     static async createUser(userData) {
         try {
+            // Check if a user with the same username already exists
+            const userExists = await User.findOne({ username: userData.username });
+            if (userExists) {
+                throw new Error('Username already exists. Please choose another username.');
+            }
+            console.log(userData.reseller_ID)
+            await getResellerById(userData.reseller_ID)
+
             // Hash the password before saving
             const saltRounds = 10;
             userData.password = await bcrypt.hash(userData.password, saltRounds);
 
+            // Create and save the new user
             const newUser = new User(userData);
             await newUser.save();
+
             return newUser;
         } catch (error) {
             if (error.code === 11000 && error.keyPattern && error.keyPattern.username) {

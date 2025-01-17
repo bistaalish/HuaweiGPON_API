@@ -24,7 +24,7 @@ const userSchema = new mongoose.Schema(
         },
         reseller_ID: {
             type: mongoose.Schema.Types.String,
-            ref: 'Reseller',
+            ref: 'reseller',
             required: true,
         },
         deleted: {
@@ -66,6 +66,11 @@ userSchema.statics.restore = async function (userId) {
         return user;
     }
     throw new Error('User not found or not deleted');
+};
+
+// Static method to find a user by username
+userSchema.statics.findByUsername = function (username) {
+    return this.findOne({ username: username, deleted: false });
 };
 
 module.exports = mongoose.model('User', userSchema);

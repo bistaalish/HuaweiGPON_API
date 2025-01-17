@@ -1,5 +1,6 @@
 const Service = require('../models/Service'); // Import the Service model
 
+
 // Create a new service
 const createService = async ({ Name, VLAN, GEM_port, Profile, Device_id }) => {
     try {
@@ -24,7 +25,8 @@ const getAllServices = async () => {
 // Get a service by ID
 const getServiceById = async (id) => {
     try {
-        const service = await Service.findById(id); // Find service by ID
+        const service = await Service.findOne({
+            Service_id:id}); // Find service by ID
         if (!service || service.isDeleted) {
             throw new Error('Service not found or has been deleted');
         }

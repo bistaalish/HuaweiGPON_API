@@ -70,5 +70,8 @@ resellerSchema.pre('save', async function (next) {
     next();
 });
 
+resellerSchema.statics.findByResellerID = function (id) {
+    return this.findOne ({reseller_ID : id, deleted: false});
+};
 // Export the Reseller model
 module.exports = mongoose.model('Reseller', resellerSchema);

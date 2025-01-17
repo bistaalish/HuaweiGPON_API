@@ -1,9 +1,10 @@
 // deviceService.js
 const Device = require('../models/Device'); // Import Device model
-
+const {getResellerById} = require("./resellerService");
 // Create Device
 const createDevice = async (deviceData) => {
     try {
+        await getResellerById(deviceData.reseller_ID);
         const device = new Device(deviceData); // Create a new device instance
         await device.save(); // Save the device to the database
         return device;

@@ -23,7 +23,7 @@ const getAllResellers = async () => {
 // Service function to get a reseller by ID
 const getResellerById = async (id) => {
     try {
-        const reseller = await Reseller.findOne({ _id: id, deleted: false });  // Find reseller by ID, excluding soft-deleted
+        const reseller = await Reseller.findOne({ reseller_ID: id, deleted: false });  // Find reseller by ID, excluding soft-deleted
         if (!reseller) throw new Error('Reseller not found');
         return reseller;  // Return the found reseller
     } catch (error) {
@@ -67,6 +67,7 @@ const getAllResellersIncludingDeleted = async () => {
         throw new Error('Error fetching resellers: ' + error.message);
     }
 };
+
 
 module.exports = {
     createReseller,
