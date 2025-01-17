@@ -57,6 +57,9 @@ const deviceSchema = new mongoose.Schema(
     }
 );
 
+// deviceSchema.statics.findByDeviceID = function (id) {
+//     return this.findOne ({Device_ID : id, deleted: false});
+// };
 // Pre-save middleware to check IP uniqueness
 deviceSchema.pre('save', async function (next) {
     if (!this.isModified('ip_address')) return next(); // Skip if ip_address hasn't changed

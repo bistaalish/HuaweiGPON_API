@@ -13,6 +13,18 @@ const createDevice = async (deviceData) => {
     }
 };
 
+const getDeviceByResellerID = async (id) => {
+    try {
+        // Find all devices where reseller_ID matches the given id
+        const devices = await Device.find({ reseller_ID: id });
+
+        // Return the list of devices found
+        return devices;
+    } catch (error) {
+        // If an error occurs, throw an error with a descriptive message
+        throw new Error('Error finding devices: ' + error.message);
+    }
+};
 // Get all devices (non-deleted)
 const getAllDevices = async () => {
     try {
@@ -27,6 +39,7 @@ const getAllDevices = async () => {
 const getDeviceByID = async (deviceID) => {
     try {
         const device = await Device.findOne({ Device_ID: deviceID, deleted: false }); // Fetch device by Device_ID
+        console.log(deviceID)
         if (!device) {
             throw new Error('Device not found');
         }
@@ -91,5 +104,6 @@ module.exports = {
     getDeviceByID,
     updateDevice,
     softDeleteDevice,
-    restoreDevice
+    restoreDevice,
+    getDeviceByResellerID,
 };
