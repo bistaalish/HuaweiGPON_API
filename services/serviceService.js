@@ -1,9 +1,10 @@
 const Service = require('../models/Service'); // Import the Service model
-
+const {getDeviceByID} = require("./deviceService");
 
 // Create a new service
 const createService = async ({ Name, VLAN, GEM_port, Profile, Device_id }) => {
     try {
+        await getDeviceByID(Device_id);
         console.log({ Name, VLAN, GEM_port, Profile, Device_id })
         const service = new Service({ Name, VLAN, GEM_port, Profile, Device_id });
         await service.save(); // Save the new service to the database
