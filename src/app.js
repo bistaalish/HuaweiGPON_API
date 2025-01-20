@@ -3,6 +3,7 @@ const express = require('express');
 const connectDatabase = require('./config/db.js');
 const resellerRoutes = require('./routes/resellerRoutes'); 
 const userRoutes = require("./routes/userRoutes.js");
+const deviceRoutes = require("./routes/deviceRoutes.js");
 const {loginUser} = require("./controllers/userController.js");
 const {isAdmin} = require("./middlewares/authMiddlewares");
 
@@ -25,6 +26,9 @@ app.use('/api/resellers',isAdmin,resellerRoutes);
 
 // Use user routes
 app.use('/api/users',isAdmin,userRoutes)
+
+// Use Device Routes
+app.use("/api/devices",deviceRoutes);
 
 // Start the server
 const PORT = process.env.PORT || 5000;

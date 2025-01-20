@@ -1,13 +1,12 @@
 const mongoose = require('mongoose');
 const { v4: uuidv4 } = require('uuid'); // Import UUID package
-
 // Define the Device schema with soft delete
 const deviceSchema = new mongoose.Schema(
     {
-        Device_ID: {
+        shortId: {
             type: String,
-            default: () => uuidv4().slice(0, 4), // Generates a unique ID
-            unique: true, // Ensures the Device_ID is unique
+            default: () => uuidv4().slice(0, 4), // Automatically generates a unique ID
+            unique: true, // Ensures the Service_id is unique
             required: true, // Makes it required
             trim: true,
         },
@@ -17,7 +16,7 @@ const deviceSchema = new mongoose.Schema(
             trim: true,
             unique: true,
         },
-        ip_address: {
+        IP: {
             type: String,
             required: true,
             unique: true, // Ensures the IP address is unique in the collection
@@ -38,7 +37,7 @@ const deviceSchema = new mongoose.Schema(
             type: String,
             required: true,
         },
-        reseller_ID: {
+        reseller: {
             type: mongoose.Schema.Types.String, // Matches the type of reseller_ID in Reseller schema
             ref: 'Reseller', // Refers to the Reseller schema
             required: true, // Makes it required

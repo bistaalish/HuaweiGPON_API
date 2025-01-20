@@ -1,0 +1,143 @@
+const Device = require('../models/Device'); // Adjust the path as necessary
+const Reseller = require("../models/Reseller");
+
+// Create a new device
+const createDevice = async (req, res) => {
+    const { Device_name, IP, username, password, reseller } = req.body;
+
+    try {
+         // Check if the reseller exists
+         const resellerExists = await Reseller.findById(reseller);
+         if (!resellerExists) {
+             return res.status(404).json({ message: 'Reseller not found' });
+         }
+ 
+        const newDevice = new Device({ Device_name, IP, username, password, reseller });
+        await newDevice.save();
+        res.status(201).json({ message: 'Device created successfully', device: newDevice });
+    } catch (error) {
+        if (error.code === 11000) {
+            console.log(error.message)
+            return res.status(409).json({ message: 'Device with this IP or name already exists.' });
+        }
+        console.error('Error creating device:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+// Get all non-deleted devices
+const getAllDevices = async (req, res) => {
+    try {
+        const reseller = await Reseller.findById(req.reseller);
+        // console.log(reseller)
+        if (reseller.name !== "Admin"){
+            const devices = await Device.find({ reseller:req.reseller, deleted: false});
+            console.log(reseller)
+            return res.status(200).json(devices);
+        };
+        if (reseller.name == "Admin") {
+            const devices = await Device.find({deleted: false});
+            return res.status(200).json(devices);
+        };
+    } catch (error) {
+        console.error('Error fetching devices:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+// Get a single device by ID
+const getDeviceById = async (req, res) => {
+    const { id } = req.params;
+    try {
+        const resellerCheck = await Reseller.findById(req.reseller);
+        console.log(resellerCheck)
+        if (!resellerCheck) {
+            return res.status(401).json({
+                message: "Unauthorized"
+            })
+        }
+        if (resellerCheck.name == "Admin") {
+            const device = await Device.findOne({shortId: id, deleted: false })
+            return res.status(200).json(device);
+        };
+        const device = await Device.findOne({ shortId: id,reseller:req.reseller,deleted: false });
+        if (!device) {
+            return res.status(404).json({ message: 'Device not found' });
+        }
+        res.status(200).json(device);
+    } catch (error) {
+        console.error('Error fetching device:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+// Update a device by ID
+const updateDeviceById = async (req, res) => {
+    const { id } = req.params;
+    const { Device_name, IP, username, password, reseller } = req.body;
+
+    try {
+        const device = await Device.findOne({ _id: id, deleted: false });
+        if (!device) {
+            return res.status(404).json({ message: 'Device not found' });
+        }
+
+        // Update fields
+        device.Device_name = Device_name || device.Device_name;
+        device.IP = IP || device.IP;
+        device.username = username || device.username;
+        device.password = password || device.password; // You may want to hash this before saving
+        device.reseller = reseller || device.reseller;
+
+        await device.save();
+        res.status(200).json({ message: 'Device updated successfully', device });
+    } catch (error) {
+        console.error('Error updating device:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+// Soft delete a device by ID
+const softDeleteDeviceById = async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const device = await Device.findOne({ _id: id, deleted: false });
+        if (!device) {
+            return res.status(404).json({ message: 'Device not found' });
+        }
+
+        await device.softDelete();
+        res.status(200).json({ message: 'Device soft deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting device:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+// Restore a soft-deleted device by ID
+const restoreDeviceById = async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const device = await Device.findOne({ _id: id, deleted: true });
+        if (!device) {
+            return res.status(404).json({ message: 'Device not found or not deleted' });
+        }
+
+        await device.restore();
+        res.status(200).json({ message: 'Device restored successfully' });
+    } catch (error) {
+        console.error('Error restoring device:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+module.exports = {
+    createDevice,
+    getAllDevices,
+    getDeviceById,
+    updateDeviceById,
+    softDeleteDeviceById,
+    restoreDeviceById,
+};

@@ -9,7 +9,7 @@ const authMiddleware = (req, res, next) => {
         return res.status(401).json({ message: 'No token provided' });
     }
 
-    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+    jwt.verify(token, process.env.JWT_SECRET, async (err, decoded) => {
         if (err) {
             return res.status(403).json({ message: 'Failed to authenticate token' });
         }
@@ -17,6 +17,8 @@ const authMiddleware = (req, res, next) => {
         // Save the decoded user ID for use in other routes
         req.userId = decoded.id;
         req.shortId = decoded.shortId;
+        const user =  await User.findById(req.userId)
+        req.reseller = user.reseller
         next();
     });
 };

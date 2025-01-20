@@ -23,7 +23,7 @@ const resellerSchema = new mongoose.Schema({
     name: {
         type: String,
         required: true,
-        uniqure: true,
+        unique: true,
     },
     email: {
         type: String,
