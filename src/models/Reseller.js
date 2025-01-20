@@ -1,77 +1,88 @@
 const mongoose = require('mongoose');
-const { v4: uuidv4 } = require('uuid');  // Import UUID package
 
-// Define the Reseller schema
-const resellerSchema = new mongoose.Schema(
-    {
-        reseller_ID: {
-            type: String,
-            default: () => uuidv4().slice(0, 4), // Automatically generates a unique ID
-            unique: true, // Ensures that the reseller_ID is unique
-            required: true, // Makes it required
-            trim: true,
-        },
-        Reseller_name: {
-            type: String,
-            required: true,
-            trim: true,
-            unique: true, // Enforces uniqueness at the database level
-        },
-        Location: {
-            type: String,
-            required: true,
-            trim: true,
-        },
-        deleted: {
-            type: Boolean,
-            default: false, // Set to false when not deleted
-        },
-        deletedAt: {
-            type: Date,
-            default: null, // Initially set to null
-        },
+// Function to generate a unique 4-digit ID
+const generateUniqueId = async () => {
+    let newId;
+    let isUnique = false;
+
+    while (!isUnique) {
+        newId = Math.floor(1000 + Math.random() * 9000).toString(); // Generate a random 4-digit number
+        const existingReseller = await Reseller.findOne({ shortId: newId });
+        isUnique = !existingReseller; // Check if the ID is unique
+    }
+
+    return newId;
+};
+
+const resellerSchema = new mongoose.Schema({
+    shortId: {
+        type: String,
+        // required: true,
+        unique: true,
     },
-    {
-        timestamps: true, // Automatically adds createdAt and updatedAt fields
-    }
-);
-
-// Virtual field to check if a document is deleted
-resellerSchema.virtual('isDeleted').get(function () {
-    return this.deleted === true;
+    name: {
+        type: String,
+        required: true,
+        uniqure: true,
+    },
+    email: {
+        type: String,
+        required: true,
+        unique: true,
+        lowercase: true,
+        trim: true,
+    },
+    phone: {
+        type: String,
+        required: true,
+    },
+    address: {
+        type: String,
+        required: false,
+    },
+    createdAt: {
+        type: Date,
+        default: Date.now,
+    },
+    updatedAt: {
+        type: Date,
+        default: Date.now,
+    },
+    deleted: {
+        type: Boolean,
+        default: false,
+    },
+    deletedAt: {
+        type: Date,
+        default: null,
+    },
 });
 
-// Custom query middleware to exclude soft-deleted documents from queries
-resellerSchema.pre(/^find/, function (next) {
-    this.where({ deleted: false }); // Exclude soft-deleted documents
+// Middleware to update the updatedAt field
+resellerSchema.pre('save', function (next) {
+    this.updatedAt = Date.now();
     next();
 });
 
-// Method to "soft delete" a reseller by setting the deleted flag and timestamp
-resellerSchema.methods.softDelete = function () {
-    this.deleted = true; // Set deleted flag to true
-    this.deletedAt = new Date(); // Set the current date and time for deletion
-    return this.save(); // Save the changes
-};
-
-// Pre-save middleware to ensure Reseller_name uniqueness across active records
+// Middleware to generate a unique shortId before saving
 resellerSchema.pre('save', async function (next) {
-    if (!this.isModified('Reseller_name')) return next(); // Skip if Reseller_name hasn't changed
-
-    const existingReseller = await mongoose.model('Reseller').findOne({
-        Reseller_name: this.Reseller_name,
-        deleted: false, // Ensure only active resellers are checked
-    });
-
-    if (existingReseller && existingReseller._id.toString() !== this._id.toString()) {
-        return next(new Error(`Reseller Name "${this.Reseller_name}" is already in use.`));
+    if (!this.shortId) {
+        this.shortId = await generateUniqueId();
     }
-
     next();
 });
 
-resellerSchema.statics.findByResellerID = function (id) {
-    return this.findOne ({reseller_ID : id, deleted: false});
+// Soft delete method
+resellerSchema.methods.softDelete = async function () {
+    this.deleted = true;
+    this.deletedAt = new Date();
+    await this.save();
 };
-// Export the Reseller model
-module.exports = mongoose.model('Reseller', resellerSchema);
+
+// Static method to find non-deleted resellers
+resellerSchema.statics.findNonDeleted = function () {
+    return this.find({ deleted: false });
+};
+
+const Reseller = mongoose.model('Reseller', resellerSchema);
+module.exports = Reseller;

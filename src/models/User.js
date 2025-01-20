@@ -1,76 +1,73 @@
 const mongoose = require('mongoose');
-const { v4: uuidv4 } = require('uuid');
+const bcrypt = require('bcrypt');
 
-const userSchema = new mongoose.Schema(
-    {
-        client_ID: {
-            type: String,
-            default: () => uuidv4().slice(0, 4),
-            unique: true,
-            required: true,
-            trim: true,
-        },
-        username: {
-            type: String,
-            trim: true,
-            minlength: [3, 'Username must be at least 3 characters long'],
-            maxlength: [50, 'Username must not exceed 50 characters'],
-            required: true,
-            unique: true, // Ensures uniqueness
-        },
-        password: {
-            type: String,
-            required: true,
-        },
-        reseller_ID: {
-            type: mongoose.Schema.Types.String,
-            ref: 'reseller',
-            required: true,
-        },
-        deleted: {
-            type: Boolean,
-            default: false, // By default, users are active
-        },
-        deletedAt: {
-            type: Date, // Records the timestamp of deletion, if applicable
-            default: null,
-        },
+// Function to generate a unique 4-digit ID
+const generateUniqueId = async () => {
+    let newId;
+    let isUnique = false;
+
+    while (!isUnique) {
+        newId = Math.floor(1000 + Math.random() * 9000).toString(); // Generate a random 4-digit number
+        const existingUser  = await User.findOne({ shortId: newId });
+        isUnique = !existingUser ; // Check if the ID is unique
+    }
+
+    return newId;
+};
+
+const userSchema = new mongoose.Schema({
+    shortId: {
+        type: String,
+        // required: true,
+        unique: true,
     },
-    {
-        timestamps: true, // Automatically adds createdAt and updatedAt fields
+    username: {
+        type: String,
+        required: true,
+        unique: true,
+    },
+    email: {
+        type: String,
+        required: true,
+        unique: true,
+        lowercase: true,
+        trim: true,
+    },
+    password: {
+        type: String,
+        required: true,
+    },
+    reseller: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Reseller', // Reference to the Reseller model
+        required: true,
+    },
+    isActive: {
+        type: Boolean,
+        default: true // Users are active by default
     }
-);
+}, { timestamps: true });
 
-// Add a unique index for the `username` field
-userSchema.index({ username: 1 }, { unique: true });
-
-// Instance method to soft delete a user
-userSchema.methods.softDelete = async function () {
-    this.deleted = true;
-    this.deletedAt = new Date();
-    await this.save();
-};
-
-// Static method to find only active users
-userSchema.statics.findActive = function (query = {}) {
-    return this.find({ ...query, deleted: false });
-};
-
-// Static method to restore a soft-deleted user
-userSchema.statics.restore = async function (userId) {
-    const user = await this.findById(userId);
-    if (user && user.deleted) {
-        user.deleted = false;
-        user.deletedAt = null;
-        await user.save();
-        return user;
+// Pre-save hook to hash the password and generate shortId
+userSchema.pre('save', async function (next) {
+    if (!this.isModified('password')) {
+        return next(); // If the password hasn't been modified, skip hashing
     }
-    throw new Error('User not found or not deleted');
+    const salt = await bcrypt.genSalt(10); // Generate a salt
+    this.password = await bcrypt.hash(this.password, salt); // Hash the password
+
+    // Generate a unique shortId if it hasn't been set
+    if (!this.shortId) {
+        this.shortId = await generateUniqueId();
+    }
+
+    next();
+});
+
+// Method to compare entered password with hashed password
+userSchema.methods.matchPassword = async function (enteredPassword) {
+    return await bcrypt.compare(enteredPassword, this.password);
 };
 
-// Static method to find a user by username
-userSchema.statics.findByUsername = function (username) {
-    return this.findOne({ username: username, deleted: false });
-};
-
-module.exports = mongoose.model('User', userSchema);
+const User = mongoose.model('User ', userSchema);
+module.exports = User;

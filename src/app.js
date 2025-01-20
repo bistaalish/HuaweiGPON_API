@@ -1,6 +1,10 @@
 require('dotenv').config();
 const express = require('express');
 const connectDatabase = require('./config/db.js');
+const resellerRoutes = require('./routes/resellerRoutes'); 
+const userRoutes = require("./routes/userRoutes.js");
+const {loginUser} = require("./controllers/userController.js");
+const {isAdmin} = require("./middlewares/authMiddlewares");
 
 const app = express();
 
@@ -14,6 +18,13 @@ connectDatabase();
 app.get('/', (req, res) => {
     res.json({ message: 'API is running' });
 });
+
+app.use("/api/login",loginUser);
+// Use reseller routes
+app.use('/api/resellers',isAdmin,resellerRoutes);
+
+// Use user routes
+app.use('/api/users',isAdmin,userRoutes)
 
 // Start the server
 const PORT = process.env.PORT || 5000;
