@@ -4,7 +4,7 @@ const { v4: uuidv4 } = require('uuid'); // Import UUID package
 // Define the Service schema
 const serviceSchema = new mongoose.Schema(
     {
-        Service_id: {
+        shortId: {
             type: String,
             default: () => uuidv4().slice(0, 4), // Automatically generates a unique ID
             unique: true, // Ensures the Service_id is unique
@@ -21,7 +21,7 @@ const serviceSchema = new mongoose.Schema(
             type: String,
             required: true,
         },
-        GEM_port: {
+        GEM: {
             type: String,
             required: true,
         },
@@ -30,7 +30,7 @@ const serviceSchema = new mongoose.Schema(
             required: true,
             trim: true,
         },
-        Device_id: {
+        Device: {
             type: mongoose.Schema.Types.String, // Matches the type of Device_ID in Device schema
             ref: 'Device', // Refers to the Device schema
             required: true, // Makes it required

@@ -4,6 +4,7 @@ const connectDatabase = require('./config/db.js');
 const resellerRoutes = require('./routes/resellerRoutes'); 
 const userRoutes = require("./routes/userRoutes.js");
 const deviceRoutes = require("./routes/deviceRoutes.js");
+const serviceRoutes = require("./routes/serviceRoutes.js");
 const {loginUser} = require("./controllers/userController.js");
 const {isAdmin} = require("./middlewares/authMiddlewares");
 
@@ -25,10 +26,14 @@ app.use("/api/login",loginUser);
 app.use('/api/resellers',isAdmin,resellerRoutes);
 
 // Use user routes
-app.use('/api/users',isAdmin,userRoutes)
+app.use('/api/users',isAdmin,userRoutes);
 
 // Use Device Routes
 app.use("/api/devices",deviceRoutes);
+
+
+/// Use api routes
+app.use("/api/service",serviceRoutes)
 
 // Start the server
 const PORT = process.env.PORT || 5000;
