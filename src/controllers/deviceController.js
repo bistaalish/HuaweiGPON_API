@@ -1,6 +1,7 @@
 const Device = require('../models/Device'); // Adjust the path as necessary
 const Reseller = require("../models/Reseller");
-
+const {runAutofind} = require("./OLT/autofind");
+const { createTelnetSession } = require('./OLT/login.js'); 
 // Create a new device
 const createDevice = async (req, res) => {
     const { Device_name, IP, username, password, reseller } = req.body;
@@ -133,6 +134,35 @@ const restoreDeviceById = async (req, res) => {
     }
 };
 
+const autofind = async (req,res) => {
+    const { id } = req.params;
+    try {
+        const device = await Device.findOne({ shortId: id, deleted: false });
+        if (!device) {
+            return res.status(404).json({ message: 'Device not found or not deleted' });
+        };
+        console.log(device)
+        const telnetOptions = {
+            host: device.IP,
+            port: 23,
+            username: device.username,
+            password: device.password,
+            loginPrompt: '>>User name:',
+            passwordPrompt: '>>User password:',
+            prompt: '>'
+        };
+        const client = await createTelnetSession(telnetOptions); // Create Telnet session
+        const ontList = await runAutofind(client, telnetOptions.prompt); // Execute autofind
+        console.log('[INFO] Telnet session ended successfully.');
+        console.log('[DATA] Extracted ONT List:', JSON.stringify(ontList, null, 2));
+        console.log("[DATA]  Total Autofind:",ontList.length)
+        res.status(200).json({ message: 'Autofind completed', ontList });
+    }
+    catch (error) {
+        console.error('Error Finding device:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
 module.exports = {
     createDevice,
     getAllDevices,
@@ -140,4 +170,5 @@ module.exports = {
     updateDeviceById,
     softDeleteDeviceById,
     restoreDeviceById,
+    autofind
 };

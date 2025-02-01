@@ -1,7 +1,7 @@
 const Service = require('../models/Service'); // Adjust the path as necessary
 
 // Create a new service
-exports.createService = async (req, res) => {
+const createService = async (req, res) => {
     try {
         const service = new Service(req.body);
         await service.save();
@@ -20,7 +20,7 @@ exports.createService = async (req, res) => {
 };
 
 // Get all services
-exports.getAllServices = async (req, res) => {
+const getAllServices = async (req, res) => {
     try {
         const services = await Service.find();
         res.status(200).json({
@@ -39,7 +39,7 @@ exports.getAllServices = async (req, res) => {
 };
 
 // Get a service by ID
-exports.getServiceById = async (req, res) => {
+const getServiceById = async (req, res) => {
     try {
         const service = await Service.findById(req.params.id);
         if (!service) {
@@ -63,7 +63,7 @@ exports.getServiceById = async (req, res) => {
 };
 
 // Update a service
-exports.updateService = async (req, res) => {
+const updateService = async (req, res) => {
     try {
         const service = await Service.findByIdAndUpdate(req.params.id, req.body, {
             new: true,
@@ -90,7 +90,7 @@ exports.updateService = async (req, res) => {
 };
 
 // Soft delete a service
-exports.softDeleteService = async (req, res) => {
+const softDeleteService = async (req, res) => {
     try {
         const service = await Service.findById(req.params.id);
         if (!service) {
@@ -111,3 +111,12 @@ exports.softDeleteService = async (req, res) => {
         });
     }
 };
+
+
+
+module.exports = {
+    createService,
+    getAllServices,
+    getServiceById,
+    updateService,softDeleteService,
+}

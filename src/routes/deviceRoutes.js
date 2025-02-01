@@ -6,6 +6,7 @@ const {
     updateDeviceById,
     softDeleteDeviceById,
     restoreDeviceById,
+    autofind
 } = require('../controllers/deviceController'); // Adjust the path as necessary
 const { authMiddleware, isAdmin } = require("../middlewares/authMiddlewares")
 const router = express.Router();
@@ -27,5 +28,8 @@ router.delete('/:id',isAdmin,softDeleteDeviceById);
 
 // Restore a soft-deleted device by ID
 router.put('/:id/restore',isAdmin,restoreDeviceById);
+
+// Run autofind on specific device
+router.get("/:id/autofind",authMiddleware,autofind);
 
 module.exports = router;

@@ -33,7 +33,7 @@ app.use("/api/devices",deviceRoutes);
 
 
 /// Use api routes
-app.use("/api/service",serviceRoutes)
+app.use("/api/services",serviceRoutes)
 
 // Start the server
 const PORT = process.env.PORT || 5000;
