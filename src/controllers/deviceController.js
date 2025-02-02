@@ -2,6 +2,7 @@ const Device = require('../models/Device'); // Adjust the path as necessary
 const Reseller = require("../models/Reseller");
 const {runAutofind} = require("./OLT/autofind");
 const { createTelnetSession } = require('./OLT/login.js'); 
+const {runSearchBySN} = require("./OLT/search");
 // Create a new device
 const createDevice = async (req, res) => {
     const { Device_name, IP, username, password, reseller } = req.body;
@@ -163,6 +164,48 @@ const autofind = async (req,res) => {
         res.status(500).json({ message: 'Server error' });
     }
 };
+
+
+const searchONU = async (req,res) => {
+    // check if the req.body provides sn or description
+    const { id } = req.params;
+    const {sn,description} = req.body;
+    console.log(id);
+    if (!sn && !description) {
+        return res.status(400).json({ message: 'Please provide either SN or Description' });
+    }
+    try {
+        const device = await Device.findOne({ shortId: id, deleted: false });
+        if (!device) {
+            return res.status(404).json({ message: 'Device not found or not deleted' });
+        };
+        console.log(device)
+        const telnetOptions = {
+            host: device.IP,
+            port: 23,
+            username: device.username,
+            password: device.password,
+            loginPrompt: '>>User name:',
+            passwordPrompt: '>>User password:',
+            prompt: '>'
+        };
+        const client = await createTelnetSession(telnetOptions); // Create Telnet session
+        if (sn && !description) {
+            const ont = await runSearchBySN(client, telnetOptions.prompt,sn); // Execute autofind
+            console.log('[INFO] Telnet session ended successfully.');
+            console.log('[DATA] Extracted ONT:', JSON.stringify(ont, null, 2));
+            res.status(200).json({ message: 'Search completed', ont
+        });
+    }
+        // const ont = await runSearch(client, telnetOptions.prompt,sn,description); // Execute autofind
+        // console.log('[INFO] Telnet session ended successfully.');
+        // console.log('[DATA] Extracted ONT:', JSON.stringify(ont, null, 2));
+        // res.status(200).json({ message: 'Search completed', ont });
+}catch (error) {
+        console.error('Error Finding device:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
 module.exports = {
     createDevice,
     getAllDevices,
@@ -170,5 +213,6 @@ module.exports = {
     updateDeviceById,
     softDeleteDeviceById,
     restoreDeviceById,
-    autofind
+    autofind,
+    searchONU
 };
