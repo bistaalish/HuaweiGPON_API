@@ -54,7 +54,7 @@ async function runSearchBySN(client, prompt, sn) {
 
     // Now, extract the required fields and return as an object
     const extractedData = await extractONTData(output);
-    client.write("q\n")
+    await client.write("q\n")
     // Return the extracted data without closing the Telnet session
     return extractedData;
   } catch (error) {
@@ -103,7 +103,8 @@ function extractONTData(output) {
     result.lastDownTime = output.match(regexPatterns.lastDownTime)?.[1] || null;
     result.lastDyingGaspTime = output.match(regexPatterns.lastDyingGaspTime)?.[1] || null;
   }
-  response.data = result;
+  response.data =  result;
+  // client.close()
   return response;
 }
 

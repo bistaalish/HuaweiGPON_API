@@ -3,6 +3,8 @@ const Reseller = require("../models/Reseller");
 const {runAutofind} = require("./OLT/autofind");
 const { createTelnetSession } = require('./OLT/login.js'); 
 const {runSearchBySN} = require("./OLT/search");
+const {deleteONTBySN} = require("./OLT/delete");
+
 // Create a new device
 const createDevice = async (req, res) => {
     const { Device_name, IP, username, password, reseller } = req.body;
@@ -157,6 +159,7 @@ const autofind = async (req,res) => {
         console.log('[INFO] Telnet session ended successfully.');
         console.log('[DATA] Extracted ONT List:', JSON.stringify(ontList, null, 2));
         console.log("[DATA]  Total Autofind:",ontList.length)
+        client.end();
         res.status(200).json({ message: 'Autofind completed', ontList });
     }
     catch (error) {
@@ -194,6 +197,7 @@ const searchONU = async (req,res) => {
             const ont = await runSearchBySN(client, telnetOptions.prompt,sn); // Execute autofind
             console.log('[INFO] Telnet session ended successfully.');
             console.log('[DATA] Extracted ONT:', JSON.stringify(ont, null, 2));
+            client.end();
             res.status(200).json({ message: 'Search completed', ont
         });
     }
@@ -206,6 +210,42 @@ const searchONU = async (req,res) => {
         res.status(500).json({ message: 'Server error' });
     }
 };
+
+// Create a deleteONU controller
+const deleteONU = async (req, res) => {
+    const {id} = req.params;
+    const {sn} = req.body;
+    try {
+        const device = await Device.findOne({ shortId: id, deleted: false });
+        if (!device) {
+            return res.status(404).json({ message: 'Device not found or not deleted' });
+        };
+        console.log(device)
+        const telnetOptions = {
+            host: device.IP,
+            port: 23,
+            username: device.username,
+            password: device.password,
+            loginPrompt: '>>User name:',
+            passwordPrompt: '>>User password:',
+            prompt: '>'
+        };
+        const client = await createTelnetSession(telnetOptions); // Create Telnet session
+        const searchResult = await runSearchBySN(client, telnetOptions.prompt, sn);
+        if (!searchResult.status) {
+            console.error(`[INFO] ${searchResult.message}`);
+            return res.status(404).json({ message: searchResult.message });
+        }
+        const ont = await deleteONTBySN(client,searchResult, telnetOptions.prompt); // Execute autofind
+        console.log('[INFO] Telnet session ended successfully.');
+        console.log('[DATA] Extracted ONT:', JSON.stringify(ont, null, 2));
+        res.status(200).json({ message: 'Search completed', ont });
+    }catch (error) {
+        console.error('Error Finding device:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+ };
+
 module.exports = {
     createDevice,
     getAllDevices,
@@ -214,5 +254,6 @@ module.exports = {
     softDeleteDeviceById,
     restoreDeviceById,
     autofind,
-    searchONU
+    searchONU,
+    deleteONU
 };
