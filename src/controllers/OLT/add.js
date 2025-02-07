@@ -32,6 +32,8 @@ async function addPON(inputData, client, basePrompt) {
         client.write(`quit\r\n`);
         client.write(`service-port vlan ${vlan} gpon ${FSP} ont ${ontID} gemport ${gem} multi-service user-vlan ${vlan} tag-transform translate\r\n`)
         client.write("\r\n")
+        client.write("\r\n")
+        client.write("\r\n")
         await waitForPrompt(client, basePrompt);
 
         // Use ONTID for further configurations

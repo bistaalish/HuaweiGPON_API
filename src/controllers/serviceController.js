@@ -112,11 +112,23 @@ const softDeleteService = async (req, res) => {
     }
 };
 
-
+const getServiceByName = (name) => {
+    try {
+        const service = Service.findOne({ Name: name });
+        if (!service) {
+            return { message: 'Service not found' };
+        }
+        return service;
+    }
+    catch (error) {
+        return { message: error.message };
+    };
+};
 
 module.exports = {
     createService,
     getAllServices,
     getServiceById,
     updateService,softDeleteService,
+    getServiceByName
 }

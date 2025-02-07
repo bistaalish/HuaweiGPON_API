@@ -8,7 +8,8 @@ const {
     restoreDeviceById,
     autofind,
     searchONU,
-    deleteONU
+    deleteONU,
+    addONU
 } = require('../controllers/deviceController'); // Adjust the path as necessary
 const { authMiddleware, isAdmin } = require("../middlewares/authMiddlewares")
 const router = express.Router();
@@ -39,4 +40,7 @@ router.post("/:id/ont/search",authMiddleware,searchONU);
 
 // Run Delete ONU on specific device
 router.delete("/:id/ont/delete/",authMiddleware,deleteONU);
+
+// Run Add ONU on specific device
+router.post("/:id/ont/add",authMiddleware,addONU);
 module.exports = router;

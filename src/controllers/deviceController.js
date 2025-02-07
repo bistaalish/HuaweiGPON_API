@@ -4,7 +4,8 @@ const {runAutofind} = require("./OLT/autofind");
 const { createTelnetSession } = require('./OLT/login.js'); 
 const {runSearchBySN} = require("./OLT/search");
 const {deleteONTBySN} = require("./OLT/delete");
-
+const {getServiceByName} = require("./serviceController");
+const {addPON} = require("./OLT/add");
 // Create a new device
 const createDevice = async (req, res) => {
     const { Device_name, IP, username, password, reseller } = req.body;
@@ -246,6 +247,65 @@ const deleteONU = async (req, res) => {
     }
  };
 
+ const addONU = async (req, res) => {
+    const { id } = req.params;
+    const { FSP, ontSN, desc,sName} = req.body;
+    try {
+        const device = await Device.findOne({ shortId: id, deleted: false });
+        const service = await getServiceByName(sName)
+        if (!device) {
+            return res.status(404).json({ message: 'Device not found or not deleted' });
+        };
+        if (!service) {
+            return res.status(404).json({ message: 'Service not found' });
+        };
+        console.log(service)
+        const telnetOptions = {
+            host: device.IP,
+            port: 23,
+            username: device.username,
+            password: device.password,
+            loginPrompt: '>>User name:',
+            passwordPrompt: '>>User password:',
+            prompt: '>'
+        };
+        const inputData = {
+            FSP: FSP,
+            ontSN: ontSN,
+            desc: desc,
+            vlan: service.VLAN,
+            profile: service.Profile,
+            gem: service.GEM
+        };
+        const client = await createTelnetSession(telnetOptions); // Create Telnet session
+        // For adding
+        const ontInfo = await runSearchBySN(client, telnetOptions.prompt, ontSN);
+        console.log('[INFO: main] Telnet session ended successfully.');
+        console.log(ontInfo);
+        if (!ontInfo.status){
+            console.log('[INFO] ONT Information:\n', ontInfo);
+            console.log('[INFO] Adding PON...');
+            await addPON(inputData, client, telnetOptions.prompt);
+            client.end(); // Close the connection
+        
+        }
+        else {
+            const deleteBySNOutput = await deleteONTBySN(client, ontInfo, telnetOptions.prompt);
+            console.log('[INFO] ONT Deletion Output:', deleteBySNOutput);
+            console.log('[INFO] ONT Information:\n', ontInfo);
+            // console.log('[INFO] Adding PON...');
+            await setTimeout(async ()=> {
+                await addPON(inputData, client, telnetOptions.prompt);
+                await client.end()
+            },10000)
+            // await client.end(); // Close the connection
+        }
+        return res.status(200).json({ message: 'Search completed', inputData });
+    }catch (error) {
+        console.error('Error Finding device:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+}
 module.exports = {
     createDevice,
     getAllDevices,
@@ -255,5 +315,6 @@ module.exports = {
     restoreDeviceById,
     autofind,
     searchONU,
-    deleteONU
+    deleteONU,
+    addONU
 };
