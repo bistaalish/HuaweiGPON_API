@@ -13,12 +13,12 @@ async function addPON(inputData, client, basePrompt) {
         const interfacePrompt = `(config-if-gpon-${f}/${s})#`; // Construct interface-specific prompt
 
         console.log('[INFO] Entering interface configuration...');
-        client.write(`interface gpon ${f}/${s}\r\n`);
+        await client.write(`interface gpon ${f}/${s}\r\n`);
         await waitForPrompt(client, interfacePrompt);
 
         console.log('[INFO] Sending "ont confirm" command...');
         const ontConfirmCommand = `ont add ${p} sn-auth ${ontSN} omci ont-lineprofile-id ${profile} ont-srvprofile-id ${profile} desc ${desc}`;
-        client.write(`${ontConfirmCommand}\r\n`);
+        await client.write(`${ontConfirmCommand}\r\n`);
         const response = await waitForResponse(client, interfacePrompt);
 
         console.log('[INFO] Extracting ONTID...');
@@ -29,11 +29,11 @@ async function addPON(inputData, client, basePrompt) {
         console.log(`[SUCCESS] ONTID extracted: ${ontID}`);
 
         console.log('[INFO] Exiting interface configuration...');
-        client.write(`quit\r\n`);
-        client.write(`service-port vlan ${vlan} gpon ${FSP} ont ${ontID} gemport ${gem} multi-service user-vlan ${vlan} tag-transform translate\r\n`)
-        client.write("\r\n")
-        client.write("\r\n")
-        client.write("\r\n")
+        await client.write(`quit\r\n`);
+        await client.write(`service-port vlan ${vlan} gpon ${FSP} ont ${ontID} gemport ${gem} multi-service user-vlan ${vlan} tag-transform translate\r\n`)
+        await client.write("\r\n")
+        await client.write("\r\n")
+        await client.write("\r\n")
         await waitForPrompt(client, basePrompt);
 
         // Use ONTID for further configurations
