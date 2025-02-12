@@ -34,8 +34,22 @@ async function addPON(inputData, client, basePrompt) {
         await client.write("\r\n")
         await client.write("\r\n")
         await client.write("\r\n")
-        await waitForPrompt(client, basePrompt);
+        await client.write(`display service-port port ${FSP} ont ${ontID} \r\n`);
+        await client.write("\r\n");
+        await client.write("\r\n");
+        await client.write("\r\n");
+        const responseServicePort = await waitForResponse(client, interfacePrompt);
+        await console.log(type(responseServicePort));
+        // const regexTotal = /Total\s*:\s*(\d+)/;
+        const match = await responseServicePort.match(regexTotal);
 
+        if (match) {
+            console.log("Total:", match[1]);
+            return true;
+        } else {
+            console.log("Total not found");
+            return false;
+        }
         // Use ONTID for further configurations
         console.log(`[INFO] Ready for further configurations with ONTID: ${ontID}`);
     } catch (error) {
@@ -56,7 +70,7 @@ function waitForPrompt(client, prompt) {
         const timeout = setTimeout(() => {
             client.removeAllListeners('data');
             reject('[ERROR] Timeout waiting for prompt.');
-        }, 10000);
+        }, 20000);
 
         client.on('data', (data) => {
             buffer += data.toString();
@@ -83,7 +97,7 @@ function waitForResponse(client, prompt) {
         const timeout = setTimeout(() => {
             client.removeAllListeners('data');
             reject('[ERROR] Timeout waiting for response.');
-        }, 10000);
+        }, 20000);
 
         client.on('data', (data) => {
             buffer += data.toString();

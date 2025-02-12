@@ -280,27 +280,31 @@ const deleteONU = async (req, res) => {
         const client = await createTelnetSession(telnetOptions); // Create Telnet session
         // For adding
         const ontInfo = await runSearchBySN(client, telnetOptions.prompt, ontSN);
-        console.log('[INFO: main] Telnet session ended successfully.');
-        console.log(ontInfo);
+        await console.log('[INFO: main] Telnet session ended successfully.');
+        await console.log(ontInfo);
         if (!ontInfo.status){
-            console.log('[INFO] ONT Information:\n', ontInfo);
-            console.log('[INFO] Adding PON...');
+            await console.log('[INFO] ONT Information:\n', ontInfo);
+            await console.log('[INFO] Adding PON...');
             await addPON(inputData, client, telnetOptions.prompt);
             client.end(); // Close the connection
         
         }
         else {
             const deleteBySNOutput = await deleteONTBySN(client, ontInfo, telnetOptions.prompt);
-            console.log('[INFO] ONT Deletion Output:', deleteBySNOutput);
-            console.log('[INFO] ONT Information:\n', ontInfo);
+            await console.log('[INFO] ONT Deletion Output:', deleteBySNOutput);
+            await console.log('[INFO] ONT Information:\n', ontInfo);
             // console.log('[INFO] Adding PON...');
             await setTimeout(async ()=> {
-                await addPON(inputData, client, telnetOptions.prompt);
+                const addPonOutput = await addPON(inputData, client, telnetOptions.prompt);
                 await client.end()
+                if (addPonOutput) {
+                    return res.status(200).json({ message: 'ONT added successfully', addPonOutput });
+                }
             },10000)
             // await client.end(); // Close the connection
         }
-        return res.status(200).json({ message: 'Search completed', inputData });
+        
+        // return res.status(200).json({ message: 'Search completed', inputData });
     }catch (error) {
         console.error('Error Finding device:', error);
         res.status(500).json({ message: 'Server error' });

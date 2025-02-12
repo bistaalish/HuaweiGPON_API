@@ -38,6 +38,7 @@ async function deleteONTBySN(client, searchResult, prompt) {
     client.write(`ont delete ${p} ${ontId}\r\n`);
     await waitForDeletionCompletion(client, prompt); // Wait for a short timeout after deletion
     await client.write("quit\r\n")
+    await client.write("\r\n")
     console.log('[INFO] ONT deletion completed.');
     return { success: true, message: 'ONT successfully deleted.' };
   } catch (error) {
@@ -63,7 +64,7 @@ function waitForPrompt(client, prompt) {
       }
     });
 
-    setTimeout(() => reject('Timeout waiting for command prompt.'), 10000); // Increased timeout
+    setTimeout(() => reject('Timeout waiting for command prompt.'), 30000); // Increased timeout
   });
 }
 
@@ -87,7 +88,7 @@ function waitForDeletionCompletion(client, prompt) {
       }
     });
 
-    setTimeout(() => reject('Timeout waiting for ONT deletion confirmation.'), 10000); // Adjust timeout if needed
+    setTimeout(() => reject('Timeout waiting for ONT deletion confirmation.'), 30000); // Adjust timeout if needed
   });
 }
 
