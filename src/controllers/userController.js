@@ -166,35 +166,68 @@ const deactivateUserByShortId = async (req, res) => {
 };
 
 // Login user
-const loginUser  = async (req, res) => {
+const loginUser = async (req, res) => {
     const { username, password } = req.body;
 
     try {
+        // Check if both username and password are provided
+        if (!username || !password) {
+            return res.status(400).json({
+                "status": "error",
+                "message": "Username and password are required."
+            });
+        }
+
         // Find the user by username
         const user = await User.findOne({ username });
         if (!user) {
-            return res.status(401).json({ message: 'Invalid username or password' });
+            return res.status(401).json({
+                "status": "error",
+                "message": "Invalid username or password."
+            });
         }
 
-        // Check if the user is active
+        // Check if the user account is active
         if (!user.isActive) {
-            return res.status(403).json({ message: 'User  account is deactivated' });
+            return res.status(403).json({
+                "status": "error",
+                "message": "User account is deactivated."
+            });
         }
 
-        // Compare the password
+        // Compare the provided password with the user's password
         const isMatch = await user.matchPassword(password);
         if (!isMatch) {
-            return res.status(401).json({ message: 'Invalid username or password' });
+            return res.status(401).json({
+                "status": "error",
+                "message": "Invalid username or password."
+            });
         }
 
-        // Generate JWT
-        const token = jwt.sign({ id: user._id, shortId: user.shortId }, process.env.JWT_SECRET, { expiresIn: '1h' });
+        // Generate JWT token with a 1-hour expiration
+        const token = jwt.sign(
+            { id: user._id, shortId: user.shortId },
+            process.env.JWT_SECRET,
+            { expiresIn: '1h' }
+        );
 
-        // Successful login
-        res.status(200).json({ message: 'Login successful', token, user: { shortId: user.shortId, username: user.username, email: user.email } });
+        // Respond with successful login details
+        return res.status(200).json({
+            "status": "success",
+            "message": "Login successful.",
+            "data": {
+                "shortId": user.shortId,
+                "username": user.username,
+                "email": user.email,
+                "token": token
+            }
+        });
     } catch (error) {
         console.error('Error logging in:', error);
-        res.status(500).json({ message: 'Server error' });
+        return res.status(500).json({
+            "status": "error",
+            "message": "Server error."
+        });
     }
 };
 

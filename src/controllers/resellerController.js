@@ -2,7 +2,7 @@ const express = require('express');
 const Reseller = require('../models/Reseller'); // Adjust the path as necessary
 const { resellerSchema } = require('../validators/resellerValidation');
 
-
+// Controller for GET /api/resellers
 const getAllResellers = async (req, res) => {
     try {
         const resellers = await Reseller.findNonDeleted();
@@ -13,6 +13,7 @@ const getAllResellers = async (req, res) => {
     }
 };
 
+// Controller for POST /api/resellers
 const createReseller = async (req, res) => {
     const { name, email, phone, address } = req.body;
 
@@ -32,6 +33,7 @@ const createReseller = async (req, res) => {
     }
 }
 
+// Controller for GET /api/resellers/:shortId
 const getResellerById = async (req, res) => {
     try {
         const reseller = await Reseller.findOne({ shortId: req.params.shortId });
@@ -45,6 +47,7 @@ const getResellerById = async (req, res) => {
     }
 }
 
+// Controller for PUT /api/resellers/:shortId
 const updateResellerById = async (req, res) => {
     const { name, email, phone, address } = req.body;
 
@@ -74,6 +77,7 @@ const updateResellerById = async (req, res) => {
     }
 }
 
+// Controller for DELETE /api/resellers/:shortId
 const softDeleteResellerById = async (req, res) => {
     try {
         const reseller = await Reseller.findOne({ shortId: req.params.shortId });

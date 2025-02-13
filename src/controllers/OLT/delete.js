@@ -25,7 +25,7 @@ async function deleteONTBySN(client, searchResult, prompt) {
     client.write(`undo service-port port ${fsp} ont ${ontId}\r\n`);
     client.write(`\n`); // Send newline to confirm
     client.write(`y\n`); // Send 'y' to confirm action
-    await waitForPrompt(client, prompt);
+    // await waitForPrompt(client, prompt);
 
     // Split F/S/P into its components
     const [f, s, p] = fsp.split('/');
@@ -33,7 +33,7 @@ async function deleteONTBySN(client, searchResult, prompt) {
     // Delete the ONT
     console.log(`[INFO] Deleting ONT: Interface GPON ${f}/${s}, ONT-ID=${ontId}`);
     client.write(`interface gpon ${f}/${s}\r\n`);
-    await waitForPrompt(client, prompt);
+    // await waitForPrompt(client, prompt);
 
     client.write(`ont delete ${p} ${ontId}\r\n`);
     await waitForDeletionCompletion(client, prompt); // Wait for a short timeout after deletion

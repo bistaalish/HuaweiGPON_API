@@ -198,8 +198,12 @@ const searchONU = async (req,res) => {
             const ont = await runSearchBySN(client, telnetOptions.prompt,sn); // Execute autofind
             console.log('[INFO] Telnet session ended successfully.');
             console.log('[DATA] Extracted ONT:', JSON.stringify(ont, null, 2));
-            client.end();
-            res.status(200).json({ message: 'Search completed', ont
+            if (!ont.status) {
+                await client.end();
+                return res.status(404).json({ status: false ,message: 'ONT not found' });
+            }
+            await client.end()
+            return res.status(200).json({ status:true, message: 'Search completed', ont
         });
     }
         // const ont = await runSearch(client, telnetOptions.prompt,sn,description); // Execute autofind
@@ -233,9 +237,10 @@ const deleteONU = async (req, res) => {
         };
         const client = await createTelnetSession(telnetOptions); // Create Telnet session
         const searchResult = await runSearchBySN(client, telnetOptions.prompt, sn);
+        console.log("fuck");
         if (!searchResult.status) {
             console.error(`[INFO] ${searchResult.message}`);
-            return res.status(404).json({ message: searchResult.message });
+            return res.status(404).json({ status: false,message: "ONT ont found." });
         }
         const ont = await deleteONTBySN(client,searchResult, telnetOptions.prompt); // Execute autofind
         console.log('[INFO] Telnet session ended successfully.');
@@ -286,21 +291,21 @@ const deleteONU = async (req, res) => {
             console.log('[INFO] ONT Information:\n', ontInfo);
             console.log('[INFO] Adding PON...');
             await addPON(inputData, client, telnetOptions.prompt);
-            client.end(); // Close the connection
-        
+            await client.end(); // Close the connection
+            res.status(200).json({ message: 'PON Added completed', inputData });
         }
         else {
-            const deleteBySNOutput = await deleteONTBySN(client, ontInfo, telnetOptions.prompt);
-            console.log('[INFO] ONT Deletion Output:', deleteBySNOutput);
-            console.log('[INFO] ONT Information:\n', ontInfo);
-            // console.log('[INFO] Adding PON...');
-            await setTimeout(async ()=> {
-                await addPON(inputData, client, telnetOptions.prompt);
-                await client.end()
-            },10000)
+            res.status(403).json({ message: 'ONT already exists' });
+            // const deleteBySNOutput = await deleteONTBySN(client, ontInfo, telnetOptions.prompt);
+            // console.log('[INFO] ONT Deletion Output:', deleteBySNOutput);
+            // console.log('[INFO] ONT Information:\n', ontInfo);
+            // // console.log('[INFO] Adding PON...');
+            // await setTimeout(async ()=> {
+            //     await addPON(inputData, client, telnetOptions.prompt);
+            //     await client.end()
+            // },10000)
             // await client.end(); // Close the connection
         }
-        return res.status(200).json({ message: 'Search completed', inputData });
     }catch (error) {
         console.error('Error Finding device:', error);
         res.status(500).json({ message: 'Server error' });
